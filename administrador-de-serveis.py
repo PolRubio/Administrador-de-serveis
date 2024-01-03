@@ -1,8 +1,10 @@
 import concurrent.futures
 import subprocess
 import time
+from programs_list import programs_to_run
 
 def run_powershell(command):
+    infinite = False
     if isinstance(command, list):
         if isinstance(command[-1], bool) and command[-1]:
             infinite = True
@@ -11,19 +13,13 @@ def run_powershell(command):
 
     if infinite:
         subprocess.Popen(['powershell', '-Command', command], close_fds=True)
-    
-    else:
-        result = subprocess.run(['powershell', '-Command', command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
-        return result.stdout.decode('utf-8').strip()
+        return None
+
+    result = subprocess.run(['powershell', '-Command', command], stdout=subprocess.PIPE, stderr=subprocess.PIPE)
+    return result.stdout.decode('utf-8').strip()
 
 if __name__ == "__main__":
     actual_time = time.time()
-    programs_to_run = [
-        "python --version",
-        "Get-ChildItem",
-        ["Write-Output 'Hello, World!'", "Write-Output 'Bye, World!'"],
-        ["ping google.com -t", True]  # True means that the program has an infinite loop
-    ]
 
     with concurrent.futures.ThreadPoolExecutor() as executor:
         futures = [executor.submit(run_powershell, program) for program in programs_to_run]
