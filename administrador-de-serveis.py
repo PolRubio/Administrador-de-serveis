@@ -5,7 +5,7 @@ import os
 import psutil
 import traceback
 import argparse
-import importlib
+import json
 
 class ProgramRunner:
     def __init__(self, programs_to_run):
@@ -79,11 +79,27 @@ def stop_infinite_programs(infinite_pids):
     # Implement logic to stop infinite programs based on their PIDs
     pass
 
+def load_from_json(json_file):
+    try:
+        with open(json_file, 'r') as file:
+            data = json.load(file)
+            programs_to_run = data.get('programs_to_run', [])
+            infinite_pids = data.get('infinite_pids', [])
+            return programs_to_run, infinite_pids
+    except FileNotFoundError:
+        print(f"Error: File {json_file} not found.")
+        return [], []
+
+def save_to_json(json_file, programs_to_run, infinite_pids):
+    data = {'programs_to_run': programs_to_run, 'infinite_pids': infinite_pids}
+    with open(json_file, 'w') as file:
+        json.dump(data, file, indent=2)
+
 def main():
     parser = argparse.ArgumentParser(description="Run and manage programs.")
     parser.add_argument("-r", "--run", action="store_true", help="Run the programs")
     parser.add_argument("-s", "--stop", action="store_true", help="Stop programs with infinite loops")
-    parser.add_argument("-f", "--file", type=str, help="Python file containing commands and PIDs")
+    parser.add_argument("-f", "--file", type=str, help="JSON file containing commands and PIDs")
 
     args = parser.parse_args()
 
@@ -92,23 +108,18 @@ def main():
         return
 
     if args.file:
-        try:
-            module_name = args.file.replace(".py", "")
-            programs_module = importlib.import_module(module_name)
-            programs_to_run = programs_module.programs_to_run
-            infinite_pids = programs_module.infinite_pids
-            print(f"Loaded {len(programs_to_run)} programs from {args.file}")
-            print(f"Loaded {len(infinite_pids)} infinite pid from {args.file}")
-        except FileNotFoundError:
-            print(f"Error: File {args.file} not found.")
-            return
+        programs_to_run, infinite_pids = load_from_json(args.file)
+        print(f"Loaded {len(programs_to_run)} programs from {args.file}")
+        print(f"Loaded {len(infinite_pids)} infinite pids from {args.file}")
     else:
-       print("Error: No file specified.")
+        print("Error: No file specified.")
+        return
 
     if args.run:
         program_runner = ProgramRunner(programs_to_run)
         program_runner.run_programs()
-        programs_module.infinite_pids = program_runner.infinite_pids
+        infinite_pids.extend(program_runner.infinite_pids)
+        save_to_json(args.file, programs_to_run, infinite_pids)
 
     if args.stop:
         stop_infinite_programs(infinite_pids)
