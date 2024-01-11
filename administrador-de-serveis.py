@@ -76,7 +76,18 @@ class ProgramRunner:
             
 
 def stop_infinite_programs(infinite_pids):
-    # Implement logic to stop infinite programs based on their PIDs
+    for pid in infinite_pids:
+        print(f"Killing PID {pid}")
+        try:
+            process = psutil.Process(int(pid))
+            process.kill()
+            print(f"Process {pid} killed")
+        except psutil.NoSuchProcess:
+            print(f"Process {pid} not found")
+        except Exception as e:
+            print(f"Error while killing process {pid}: {e}")
+        finally:
+            print("===================")
     pass
 
 def load_from_json(json_file):
